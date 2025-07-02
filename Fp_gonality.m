@@ -37,8 +37,8 @@ a place of each degree when building the divisor.
 A divisor is stored as a list of multisets, where the elements in the i-th multiset correspond to indices places[i]
 For example the list of multisets: <{* 4^^2 *}, {* 10 *}, {* *}, {* *}> 
 corresponds to the divisor 2*places[1][4] + places[2][10]
-And the list of multisets:   <{* 2, 3 *}, {* 3 *}, {* *}, {* *}>,
-corresponds to the divisor places[1][2] + places[1][3]  + places[2][3]
+And the list of multisets:   <{* 7, 9 *}, {* 3 *}, {* *}, {* *}>,
+corresponds to the divisor places[1][7] + places[1][9]  + places[2][3]
 */
     d := #degree_counts;
     assert d eq #degree_partition;
