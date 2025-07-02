@@ -45,11 +45,13 @@ corresponds to the divisor places[1][7] + places[1][9]  + places[2][3]
     return CartesianProduct([Multisets({1..degree_counts[i]}, degree_partition[i]) : i in [1..d]]);
 end function;
 
-function DivisorsCandidates(degree_counts, cache, filter)
+function DivisorsCandidates(degree_counts, cache, filter : First := false)
 /* Loop over all divisor candidates D and return those that satisfy filter(D) eq true.  See DivisorsCandidatesByPartition how divors are
 represented.
 Cache can be anything and will be passed to the filter function. It can be used to make sure that the filter function has access to
 precomputed data (like expansions of differentials at the different places).
+
+If First is true (default = false) then only return the first divisor that satisfies the filter
 */
 //todo optimize so that we only loop over degree_partitions so that degree_partitions[1] is at least #X(Fq) / (q+1)
     d := #degree_counts;
@@ -57,7 +59,8 @@ precomputed data (like expansions of differentials at the different places).
     for degree_partition in IntegerSolutions([1..d],d) do
         for D in DivisorsCandidatesByPartition(degree_counts, degree_partition) do
             if filter(D, cache) then
-                Append(~divisors,D);
+                if First then return [D]; end if;
+                Append(~divisors, D);
             end if;
         end for;
     end for;
@@ -104,6 +107,7 @@ print divs;
 degree_counts := [ 2, 2, 2, 0 ];
 divs := DivisorsCandidates(degree_counts, [], func< D, cache | true>);
 print divs;
+print DivisorsCandidates(degree_counts, [], func< D, cache | true> : First := true);
 
 //DifferentialExpansion
 P<x,y,z> := ProjectiveSpace(GF(3), 2);
