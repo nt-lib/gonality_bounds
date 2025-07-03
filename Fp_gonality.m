@@ -52,15 +52,15 @@ corresponds to the divisor places[1][7] + places[1][9]  + places[2][3]
 
 The integer n indicates how many places of degree 1 should be in D.
 */
-    d := #degree_counts;
+    d := #degree_partition;
     //assert d eq #degree_partition;
     assert degree_partition[1] ge n;
     if n le 1 then
         return CartesianProduct([Multisets({1..degree_counts[i]}, degree_partition[i]) : i in [1..d]]);
     end if;
     
-    S1 := [S : S in Multisets({1..degree_counts[1]}, degree_partition[1]) | #Set(S) ge n];
-    return CartesianProduct(S1 cat [Multisets({1..degree_counts[i]}, degree_partition[i]) : i in [2..d]]);
+    S1 := {S : S in Multisets({1..degree_counts[1]}, degree_partition[1]) | #Set(S) ge n};
+    return CartesianProduct([S1] cat [Multisets({1..degree_counts[i]}, degree_partition[i]) : i in [2..d]]);
 end function;
 
 function DivisorCandidates(degree_counts, n, cache, filter : First := false)
