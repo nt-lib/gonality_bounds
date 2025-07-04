@@ -147,15 +147,27 @@ function HasNonconstantFunction(D, powerseries_expansions)
 end function;
 
 function HasFunctionOfDegreeAtMost(C, d)
+    t0 := Realtime();
     n := Ceiling(#Places(C, 1)/(#BaseRing(C)+1));
+    t1 := Realtime(); print "Time for computing n:", t1 - t0;
+
     if n gt d then return false; end if;
+
     n1 := Min(n,d-1);
     places := [Places(C, i) : i in [1..(d-n1)]] cat [[] : i in [1..n1]];
+    t3 := Realtime(); print "Time for computing places:", t3 - t1;
+
     degree_counts := [#p : p in places];
     powerseries_expansions := PrecomputePowerseriesExpansions(C, places, d);
+    t5 := Realtime(); print "Time for PrecomputePowerseriesExpansions:", t5 - t3;
+
     g_d_1s := DivisorCandidates(degree_counts, n, powerseries_expansions, HasNonconstantFunction : First := true);
-    return #g_d_1s ge 1;
+    t6 := Realtime(); print "Time for DivisorCandidates:", t6 - t5;
+
+    result := #g_d_1s ge 1;
+    return result;
 end function;
+
 
 function Gonality(C)
     d := 1;
