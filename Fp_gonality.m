@@ -171,16 +171,25 @@ end function;
 
 
 function Gonality(C : Bound := -1, TimingData := false)
+/* Computes the gonality of the curve C. The Bound parameter is a parameter specifying
+up to which degree to look for functions.
+
+If the optional parameter Bound is not provided then it will return the gonality. 
+If the parameter Bound is a positive integer then the return value d will always be
+at most Bound + 1; And the meaning of d is as follows:
+If d <= Bound then d equals the gonality of C;
+If d = Bound + 1 then d is a lowerbound for the gonality of C.
+*/
     d := 0;
     has_function := false;
     timing_data := [];
     while not has_function do
         d +:=1;
-        print "doing degree: ", d;
         if d eq Bound+1 then
             // break early
             has_function := true;
-        else
+        else   
+            print "doing degree: ", d;
             has_function, timings := HasFunctionOfDegreeAtMost(C, d: TimingData := true);
             Append(~timing_data, timings);
         end if;
@@ -265,5 +274,6 @@ HasFunctionOfDegreeAtMost(C, 3),HasFunctionOfDegreeAtMost(C, 4);
 
 //Gonality
 Gonality(C);
+Gonality(C : Bound:=3, TimingData:=true);
 
 */
