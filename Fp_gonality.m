@@ -149,20 +149,20 @@ end function;
 function HasFunctionOfDegreeAtMost(C, d : TimingData := false)
     t0 := Realtime();
     n := Ceiling(#Places(C, 1)/(#BaseRing(C)+1));
-    t1 := Realtime(); print "Time for computing n:", t1 - t0;
+    t1 := Realtime(); //print "Time for computing n:", t1 - t0;
 
     if n gt d then return false; end if;
 
     n1 := Min(n,d-1);
     places := [Places(C, i) : i in [1..(d-n1)]] cat [[] : i in [1..n1]];
-    t2 := Realtime(); print "Time for computing places:", t2 - t1;
+    t2 := Realtime(); //print "Time for computing places:", t2 - t1;
 
     degree_counts := [#p : p in places];
     powerseries_expansions := PrecomputePowerseriesExpansions(C, places, d);
-    t3 := Realtime(); print "Time for PrecomputePowerseriesExpansions:", t3 - t2;
+    t3 := Realtime(); //print "Time for PrecomputePowerseriesExpansions:", t3 - t2;
 
     g_d_1s := DivisorCandidates(degree_counts, n, powerseries_expansions, HasNonconstantFunction : First := true);
-    t4 := Realtime(); print "Time for DivisorCandidates:", t4 - t3;
+    t4 := Realtime(); //print "Time for DivisorCandidates:", t4 - t3;
 
     result := #g_d_1s ge 1;
     if TimingData then return result,[t1-t0,t2-t1,t3-t2,t4-t3]; end if;
@@ -170,12 +170,22 @@ function HasFunctionOfDegreeAtMost(C, d : TimingData := false)
 end function;
 
 
-function Gonality(C)
-    d := 1;
-    while not HasFunctionOfDegreeAtMost(C, d) do
+function Gonality(C : Bound := -1, TimingData := false)
+    d := 0;
+    has_function := false;
+    timing_data := [];
+    while not has_function do
         d +:=1;
         print "doing degree: ", d;
+        if d eq Bound+1 then
+            // break early
+            has_function := true;
+        else
+            has_function, timings := HasFunctionOfDegreeAtMost(C, d: TimingData := true);
+            Append(~timing_data, timings);
+        end if;
     end while;
+    if TimingData then return d, timing_data; end if;
     return d;
 end function;
 
