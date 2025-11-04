@@ -141,7 +141,7 @@ function HasNonconstantFunction(D, powerseries_expansions)
     // so the condition is that the vanishing matrix should have rank < deg D
     M := DifferentialVanishingMatrix(powerseries_expansions, D);
     d := NumberOfColumns(M);
-    r := Rank(DifferentialVanishingMatrix(powerseries_expansions, D));
+    r := Rank(M);
     //print r,d,D;
     return r lt d;
 end function;
