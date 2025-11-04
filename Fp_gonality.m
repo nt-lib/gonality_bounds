@@ -151,7 +151,13 @@ function HasFunctionOfDegreeAtMost(C, d : TimingData := false)
     n := Ceiling(#Places(C, 1)/(#BaseRing(C)+1));
     t1 := Realtime(); //print "Time for computing n:", t1 - t0;
 
-    if n gt d then return false; end if;
+    if n gt d then 
+        if TimingData then
+            return false, [t1-t0,0,0,0];
+        else
+            return false;
+        end if;
+    end if;
 
     n1 := Min(n,d-1);
     places := [Places(C, i) : i in [1..(d-n1)]] cat [[] : i in [1..n1]];
@@ -190,8 +196,12 @@ If d = Bound + 1 then d is a lowerbound for the gonality of C.
             has_function := true;
         else   
             print "doing degree: ", d;
-            has_function, timings := HasFunctionOfDegreeAtMost(C, d: TimingData := true);
-            Append(~timing_data, timings);
+            if TimingData then
+                has_function, timings := HasFunctionOfDegreeAtMost(C, d: TimingData := TimingData);
+                Append(~timing_data, timings);
+            else
+                has_function := HasFunctionOfDegreeAtMost(C, d: TimingData := TimingData);
+            end if;
         end if;
     end while;
     if TimingData then return d, timing_data; end if;
