@@ -146,23 +146,65 @@ function HasNonconstantFunction(D, powerseries_expansions)
     return r lt d;
 end function;
 
-function HasFunctionOfDegreeAtMost(C, d)
+function HasFunctionOfDegreeAtMost(C, d : TimingData := false)
+    t0 := Realtime();
     n := Ceiling(#Places(C, 1)/(#BaseRing(C)+1));
-    if n gt d then return false; end if;
+    t1 := Realtime(); //print "Time for computing n:", t1 - t0;
+
+    if n gt d then 
+        if TimingData then
+            return false, [t1-t0,0,0,0];
+        else
+            return false;
+        end if;
+    end if;
+
     n1 := Min(n,d-1);
     places := [Places(C, i) : i in [1..(d-n1)]] cat [[] : i in [1..n1]];
+    t2 := Realtime(); //print "Time for computing places:", t2 - t1;
+
     degree_counts := [#p : p in places];
     powerseries_expansions := PrecomputePowerseriesExpansions(C, places, d);
+    t3 := Realtime(); //print "Time for PrecomputePowerseriesExpansions:", t3 - t2;
+
     g_d_1s := DivisorCandidates(degree_counts, n, powerseries_expansions, HasNonconstantFunction : First := true);
-    return #g_d_1s ge 1;
+    t4 := Realtime(); //print "Time for DivisorCandidates:", t4 - t3;
+
+    result := #g_d_1s ge 1;
+    if TimingData then return result,[t1-t0,t2-t1,t3-t2,t4-t3]; end if;
+    return result;
 end function;
 
-function Gonality(C)
-    d := 1;
-    while not HasFunctionOfDegreeAtMost(C, d) do
+
+function Gonality(C : Bound := -1, TimingData := false)
+/* Computes the gonality of the curve C. The Bound parameter is a parameter specifying
+up to which degree to look for functions.
+
+If the optional parameter Bound is not provided then it will return the gonality. 
+If the parameter Bound is a positive integer then the return value d will always be
+at most Bound + 1; And the meaning of d is as follows:
+If d <= Bound then d equals the gonality of C;
+If d = Bound + 1 then d is a lowerbound for the gonality of C.
+*/
+    d := 0;
+    has_function := false;
+    timing_data := [];
+    while not has_function do
         d +:=1;
-        print "doing degree: ", d;
+        if d eq Bound+1 then
+            // break early
+            has_function := true;
+        else   
+            print "doing degree: ", d;
+            if TimingData then
+                has_function, timings := HasFunctionOfDegreeAtMost(C, d: TimingData := TimingData);
+                Append(~timing_data, timings);
+            else
+                has_function := HasFunctionOfDegreeAtMost(C, d: TimingData := TimingData);
+            end if;
+        end if;
     end while;
+    if TimingData then return d, timing_data; end if;
     return d;
 end function;
 
@@ -242,5 +284,6 @@ HasFunctionOfDegreeAtMost(C, 3),HasFunctionOfDegreeAtMost(C, 4);
 
 //Gonality
 Gonality(C);
+Gonality(C : Bound:=3, TimingData:=true);
 
 */
