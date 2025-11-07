@@ -167,7 +167,7 @@ function HasFunctionOfDegreeAtMost(C, d : TimingData := false, places := [])
     t2 := Realtime(); //print "Time for computing places:", t2 - t1;
 
     degree_counts := [#p : p in places];
-    print n, degree_counts;
+    // print n, degree_counts;
     powerseries_expansions := PrecomputePowerseriesExpansions(C, places, d);
     t3 := Realtime(); //print "Time for PrecomputePowerseriesExpansions:", t3 - t2;
 
