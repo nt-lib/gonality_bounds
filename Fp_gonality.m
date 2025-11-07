@@ -1,24 +1,36 @@
-function DifferentialExpansion(omega, x, d)
-/*
-Given a differential omega on a curve, a place x on the same curve, and a precision d,
-returns the Laurent series expansion of omega at x to precision d.
-*/
-    F := FunctionField(Curve(x));
-    u := UniformizingParameter(x);
-    du := Differential(u);
-    Fx,mx := Completion(F, x : Precision := d);
-    f := mx(omega/du);
-    return f;
+function UniformisingDifferential(omegas, x)
+    for omega in omegas do
+        if Valuation(omega,x) eq 0 then
+            return omega;
+        end if;
+    end for;
 end function;
 
-function DifferentialExpansionVector(omega, x, d)
+function DifferentialExpansionMatrices(omegas, x, d)
 /*
-Given a differential omega on a curve, a place x on the same curve, and a precision d,
-returns the Laurent series expansion of omega at x to precision d.
+Given a sequence omegas of differentials on a curve, a place x on the same curve, and a precision d,
+returns a sequence of d matrices, the ith of which encodes the ith coefficient of the Laurent series
+expansion of each differential of omegas at x.
 */
-    f := DifferentialExpansion(omega, x, d);
-    F := BaseRing(Curve(x));
-    return [Eltseq(Coefficient(f,i),F) : i in [0..(d-1)]];
+    BF := BaseRing(Curve(x));
+    F := FunctionField(Curve(x));
+    //u := UniformizingParameter(x);
+    //du := Differential(u);
+    du := UniformisingDifferential(omegas, x);
+    
+    fs := [omega/du : omega in omegas];
+    
+    if d eq 1 then
+        m := Matrix([Eltseq(Evaluate(f, x), BF) : f in fs]);
+        assert Ncols(m) eq Degree(x);
+        return [m];
+    else
+        Fx, mx := Completion(F, x : Precision := d);
+        expansions := [mx(f) : f in fs];
+        ms := [Matrix([Eltseq(Coefficient(e, i), BF) : e in expansions]) : i in [0..(d-1)]];
+        assert forall{m : m in ms | Ncols(m) eq Degree(x)};
+        return ms;
+    end if;
 end function;
 
 // intrinsic IntegerSolutions(ns::[RngIntElt], d::RngIntElt) -> SeqEnum[SeqEnum[RngIntElt]]
@@ -93,44 +105,27 @@ function PrecomputePowerseriesExpansions(C, places, d)
     // The PowerseriesExpansions at all x in places
     // up to precision d/deg(x)
     /*
-    Returns expansions, where expansions[i][j][k] stores the expansion of basis differential omega_i at degree j place places[j][k]. 
+    Returns expansions, where expansions[i][j][k] stores the (k-1)th coordinate of the expansion of
+    the basis differentials of C at degree i place places[i][j]. 
     */
-    expansions := [];
-    Differentials := BasisOfHolomorphicDifferentials(C);
-    for omega in Differentials do
-        omega_expansions := [];
-        for j in [1..#places] do
-            degree_j_expansions := [];
-            for x in places[j] do
-                Append(~degree_j_expansions, DifferentialExpansionVector(omega, x, d div j));
-            end for;
-            Append(~omega_expansions, degree_j_expansions);
+    expansions := <>;
+    differentials := BasisOfHolomorphicDifferentials(C);
+    for i in [1..#places] do
+        degree_i_expansions := [];
+        for x in places[i] do
+            Append(~degree_i_expansions, DifferentialExpansionMatrices(differentials, x, d div i));
         end for;
-        Append(~expansions, omega_expansions);
+        Append(~expansions, degree_i_expansions);
     end for;
     return expansions;
 end function;
 
-function DifferentialVanishingVector(expansions, D)
-    // The vector corresponding to the row of one differential omega in the
-    // DifferentialVanishingMatrix 
-    d := #D;
-    row := [];
-    for j in [1..d] do
-        // sorting is important since we want the output to be the same independent
-        // of how the points in the multiset of D are stored internally.
-        support := Sort(Setseq(Set(D[j])));
-        row cat:= [expansions[j][k][1..Multiplicity(D[j], k)] : k in support];
-    end for;
-    return Vector(&cat &cat row);
-end function;
-
-function DifferentialVanishingMatrix(powerseries_expansions, D)
-    // The matrix that describes the relations the diffrentials must satisfy to vanish at
+function DifferentialVanishingMatrix(expansions, D)
+    // The matrix that describes the relations the differentials must satisfy to vanish at
     // the divisor D
-    // powerseries_expansions: precomputed powerseries expansions at the different places
+    // expansions: precomputed powerseries expansions at the different places
     // D: divisor in the format described in DivisorCandidatesByPartition
-    return Matrix([DifferentialVanishingVector(expansion, D) : expansion in powerseries_expansions]);
+    return HorizontalJoin(<expansions[i][j][k] : k in [1..n], j -> n in x, i -> x in D>);
 end function;
 
 function HasNonconstantFunction(D, powerseries_expansions)
@@ -146,24 +141,33 @@ function HasNonconstantFunction(D, powerseries_expansions)
     return r lt d;
 end function;
 
-function HasFunctionOfDegreeAtMost(C, d : TimingData := false)
+function HasFunctionOfDegreeAtMost(C, d : TimingData := false, places := [])
     t0 := Realtime();
-    n := Ceiling(#Places(C, 1)/(#BaseRing(C)+1));
+    if #places eq 0 then
+        places := [Places(C, 1)];
+    end if;
+    n := Ceiling(#places[1]/(#BaseRing(C)+1));
     t1 := Realtime(); //print "Time for computing n:", t1 - t0;
 
     if n gt d then 
         if TimingData then
-            return false, [t1-t0,0,0,0];
+            return false, places, [t1-t0,0,0,0];
         else
-            return false;
+            return false, places;
         end if;
     end if;
 
     n1 := Min(n,d-1);
-    places := [Places(C, i) : i in [1..(d-n1)]] cat [[] : i in [1..n1]];
+    places cat:= [[] : i in [(#places+1)..d]];
+    for i in [2..(d-n1)] do
+        if #places[i] eq 0 then
+            places[i] := Places(C, i);
+        end if;
+    end for;
     t2 := Realtime(); //print "Time for computing places:", t2 - t1;
 
     degree_counts := [#p : p in places];
+    print n, degree_counts;
     powerseries_expansions := PrecomputePowerseriesExpansions(C, places, d);
     t3 := Realtime(); //print "Time for PrecomputePowerseriesExpansions:", t3 - t2;
 
@@ -171,8 +175,8 @@ function HasFunctionOfDegreeAtMost(C, d : TimingData := false)
     t4 := Realtime(); //print "Time for DivisorCandidates:", t4 - t3;
 
     result := #g_d_1s ge 1;
-    if TimingData then return result,[t1-t0,t2-t1,t3-t2,t4-t3]; end if;
-    return result;
+    if TimingData then return result, places, [t1-t0,t2-t1,t3-t2,t4-t3]; end if;
+    return result, places;
 end function;
 
 
@@ -189,6 +193,7 @@ If d = Bound + 1 then d is a lowerbound for the gonality of C.
     d := 0;
     has_function := false;
     timing_data := [];
+    places := [];
     while not has_function do
         d +:=1;
         if d eq Bound+1 then
@@ -197,10 +202,10 @@ If d = Bound + 1 then d is a lowerbound for the gonality of C.
         else   
             print "doing degree: ", d;
             if TimingData then
-                has_function, timings := HasFunctionOfDegreeAtMost(C, d: TimingData := TimingData);
+                has_function, places, timings := HasFunctionOfDegreeAtMost(C, d: TimingData := TimingData, places := places);
                 Append(~timing_data, timings);
             else
-                has_function := HasFunctionOfDegreeAtMost(C, d: TimingData := TimingData);
+                has_function, places := HasFunctionOfDegreeAtMost(C, d: TimingData := TimingData, places := places);
             end if;
         end if;
     end while;
@@ -238,30 +243,22 @@ divs := DivisorCandidates(degree_counts, [], func< D, cache | true>);
 print divs;
 print DivisorCandidates(degree_counts, [], func< D, cache | true> : First := true);
 
-//DifferentialExpansion
+//DifferentialExpansionMatrices
 d := 4;
 P<x,y,z> := ProjectiveSpace(GF(3), 2);
 // https://beta.lmfdb.org/ModularCurve/Q/8.96.3.e.1/
 f := 4*x^4 - y^4 - z^4;
 C := Curve(P,f);
 x := Places(C,2)[2];
-omega := BasisOfHolomorphicDifferentials(C)[1];
+differentials := BasisOfHolomorphicDifferentials(C);
 
-f := DifferentialExpansion(omega, x, d);
-print f;
-
-//DifferentialExpansionVector
-f := DifferentialExpansionVector(omega, x, d);
+f := DifferentialExpansionMatrices(differentials, x, d);
 print f;
 
 //PrecomputePowerseriesExpansions
 places := [Places(C, i) : i in [1..d]];
 powerseries_expansions := PrecomputePowerseriesExpansions(C, places, d);
 print powerseries_expansions;
-
-//DifferentialVanishingVector
-D := <{* 1, 2 *}, {* 1 *}, {* *}, {* *}>;
-DifferentialVanishingVector(powerseries_expansions[1], D);
 
 //DifferentialVanishingMatrix
 DifferentialVanishingMatrix(powerseries_expansions, D);
