@@ -72,14 +72,15 @@ The integer n indicates how many places of degree 1 should be in D.
 end function;
 
 function DivisorCandidates(degree_counts, n, cache, filter : First := false)
-/* Loop over all divisor candidates D and return those that satisfy filter(D) eq true.  See DivisorCandidatesByPartition how divisors are
+/* Loop over all divisors D of degree equal to #degree_counts and return those that satisfy filter(D) eq true.  See DivisorCandidatesByPartition how divisors are
 represented.
 Cache can be anything and will be passed to the filter function. It can be used to make sure that the filter function has access to
 precomputed data (like expansions of differentials at the different places).
 
 If First is true (default = false) then only return the first divisor that satisfies the filter
 
-The integer n indicates how many places of degree 1 should be in D.
+The integer n gives a lower bound on how many places of degree 1 should be in the divisor D. So setting n=0 causes the code 
+to loop over all divisors D of degree equal to #degree_counts.
 */
     d := #degree_counts;
     divisors := [];
