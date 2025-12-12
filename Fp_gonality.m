@@ -51,7 +51,7 @@ the Laurent series expansion of each differential of omegas at x.
             for i -> f in fs do
                 g := &+[c * v^(e-1) : e -> c in as[i]];
                 fs[i] := F!RationalFunction((f - g)*uinv);
-                as[i] := Eltseq(Evaluate(fs[i]), x), CF);
+                as[i] := Eltseq(Evaluate(fs[i], x), CF);
             end for;
             Append(~expansions, Matrix(as));
         end for;
@@ -167,7 +167,7 @@ declare verbose Gonality, 1;
 
 intrinsic HasFunctionOfDegreeAtMost(FF::FldFun, d::RngIntElt) -> BoolElt
 { Returns whether there is a function on FF with degree at most d. }
-    if d gt Genus(FF) then
+    if d gt Genus(FF) or #Places(FF, 1) gt 0 and d eq Genus(FF) then
         vprint Gonality: "HasFunctionOfDegreeAtMost timing data", [0,0,0,0];
         return true;
     end if;
@@ -207,6 +207,13 @@ If the parameter Bound is a positive integer then the return value d will always
 at most Bound + 1; And the meaning of d is as follows:
 If d <= Bound then d equals the gonality of FF;
 If d = Bound + 1 then d is a lowerbound for the gonality of FF. }
+    if Genus(FF) eq 0 then
+        return 1;
+    end if;
+    if Genus(FF) le 2 then
+        return 2;
+    end if;
+
     d := 1;
     while d ne Bound+1 do
         vprint Gonality: "Trying degree", d;
