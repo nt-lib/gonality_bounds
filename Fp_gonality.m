@@ -1,14 +1,30 @@
-function UniformisingDifferential(omegas, x)
+function UniformizingDifferential(omegas, x)
 /*
 Given a sequence omegas of differentials on a function field and a place x on the same function field,
 returns a differential of omegas with valuation 0 at x.
 */
     for omega in omegas do
-        if Valuation(omega,x) eq 0 then
+        if Valuation(Divisor(omega), x) eq 0 then
             return omega;
         end if;
     end for;
     error "No differential with valuation zero";
+end function;
+
+function UniformizingParameter(fs, x)
+/*
+Given a sequence fs of functions on a function field and a place x on the same function field,
+returns an element of the function field with valuation 1 at x.
+*/
+    CF := ConstantField(FunctionField(x));
+    
+    for f in fs do
+        ux := Evaluate(MinimalPolynomial(Evaluate(f, x), CF), f);
+        if Valuation(ux, x) eq 1 then
+            return ux;
+        end if;
+    end for;
+    error "Did not find a function of valuation 1";
 end function;
 
 function DifferentialExpansionMatrices(omegas, x, d)
@@ -18,20 +34,30 @@ and a precision d, returns a sequence of d matrices, the ith of which encodes th
 the Laurent series expansion of each differential of omegas at x.
 */
     F := FunctionField(x);
+    CFx := ResidueClassField(x);
     CF := ConstantField(F);
-    du := UniformisingDifferential(omegas, x);
+    du := UniformizingDifferential(omegas, x);
     
-    fs := [omega/du : omega in omegas];
+    fs := [F!RationalFunction(omega/du) : omega in omegas]; // Why does RationalFunction make Evaluate much faster on non-canonical models?
+    as := [Eltseq(Evaluate(f, x), CF) : f in fs];
+    expansions := [Matrix(as)];
     
-    if d eq 1 then
-        m := Matrix([Eltseq(Evaluate(f, x), CF) : f in fs]);
-        return [m];
-    else
-        Fx, mx := Completion(F, x : Precision := d);
-        expansions := [mx(f) : f in fs];
-        ms := [Matrix([Eltseq(Coefficient(e, i), CF) : e in expansions]) : i in [0..(d-1)]];
-        return ms;
+    if d gt 1 then
+        u := UniformizingParameter(fs, x);
+        uinv := 1/u;
+        v := Lift(Generator(CFx, CF), x);
+        
+        for _ in [2..d] do
+            for i -> f in fs do
+                g := &+[c * v^(e-1) : e -> c in as[i]];
+                fs[i] := F!RationalFunction((f - g)*uinv);
+                as[i] := Eltseq(Evaluate(fs[i]), x), CF);
+            end for;
+            Append(~expansions, Matrix(as));
+        end for;
     end if;
+    
+    return expansions;
 end function;
 
 function IntegerSolutions(ns, d)
