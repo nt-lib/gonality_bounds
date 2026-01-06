@@ -15,6 +15,8 @@ function UniformizingParameter(fs, x)
 /*
 Given a sequence fs of functions on a function field and a place x on the same function field,
 returns an element of the function field with valuation 1 at x.
+
+TODO: doesn't work if X is hyperelliptic
 */
     CF := ConstantField(FunctionField(x));
     
@@ -24,7 +26,7 @@ returns an element of the function field with valuation 1 at x.
             return ux;
         end if;
     end for;
-    error "Did not find a function of valuation 1";
+    return UniformizingElement(x);
 end function;
 
 function DifferentialExpansionMatrices(omegas, x, d)
@@ -167,6 +169,10 @@ declare verbose Gonality, 1;
 
 intrinsic HasFunctionOfDegreeAtMost(FF::FldFun, d::RngIntElt) -> BoolElt
 { Returns whether there is a function on FF with degree at most d. }
+    if DimensionOfExactConstantField(FF) ne 1 then
+        return HasFunctionOfDegreeAtMost(ConstantFieldExtension(FF, ExactConstantField(FF)), d div DimensionOfExactConstantField(FF));
+    end if;
+
     if d gt Genus(FF) or #Places(FF, 1) gt 0 and d eq Genus(FF) then
         vprint Gonality: "HasFunctionOfDegreeAtMost timing data", [0,0,0,0];
         return true;
@@ -207,6 +213,10 @@ If the parameter Bound is a positive integer then the return value d will always
 at most Bound + 1; And the meaning of d is as follows:
 If d <= Bound then d equals the gonality of FF;
 If d = Bound + 1 then d is a lowerbound for the gonality of FF. }
+    if DimensionOfExactConstantField(FF) ne 1 then
+        return DimensionOfExactConstantField(FF) * Gonality(ConstantFieldExtension(FF, ExactConstantField(FF)));
+    end if;
+
     if Genus(FF) eq 0 then
         return 1;
     end if;
